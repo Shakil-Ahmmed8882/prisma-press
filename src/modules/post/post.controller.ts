@@ -3,6 +3,7 @@ import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { postService } from "./post.services";
 import httpStatus from "http-status";
+import { Role } from "../../../generated/prisma/enums";
 
 const getAllPosts = catchAsync(async (req: Request, res: Response) => {
     const posts = await postService.getAllPostsFromDB();
@@ -26,6 +27,28 @@ const getSinglePost = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getMyPosts = catchAsync(async (req: Request, res: Response) => {
+    const posts = await postService.getMyPostsFromDB(req.user!.userId);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "My posts retrieved successfully",
+        data: posts,
+    });
+});
+
+const getPostStats = catchAsync(async (req: Request, res: Response) => {
+    const stats = await postService.getPostStatsFromDB();
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Post stats retrieved successfully",
+        data: stats,
+    });
+});
+
 const createPost = catchAsync(async (req: Request, res: Response) => {
     const post = await postService.createPostIntoDB(req.user!.userId, req.body);
 
@@ -38,7 +61,11 @@ const createPost = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updatePost = catchAsync(async (req: Request, res: Response) => {
-    const post = await postService.updatePostIntoDB(req.params.postId as string, req.user!.userId, req.body);
+    const postId = req.params.postId as string;
+    const authorId = req.user!.userId;
+    const isAdmin = req.user!.role === Role.ADMIN;
+    const payload = req.body;
+    const post = await postService.updatePostIntoDB( postId, authorId, payload, isAdmin);
 
     sendResponse(res, {
         success: true,
@@ -61,6 +88,8 @@ const deletePost = catchAsync(async (req: Request, res: Response) => {
 export const postController = {
     getAllPosts,
     getSinglePost,
+    getMyPosts,
+    getPostStats,
     createPost,
     updatePost,
     deletePost,
