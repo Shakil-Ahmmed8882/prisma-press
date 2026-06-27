@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import type { SignOptions } from "jsonwebtoken";
 import { prisma } from "../../lib/prisma";
 import config from "../../config";
-import { createToken } from "../../utils/jwt";
+import { createToken, verifyToken } from "../../utils/jwt";
 import type { ILoginUser } from "./auth.interface";
 
 const loginUser = async (payload: ILoginUser) => {
@@ -57,11 +57,33 @@ const loginUser = async (payload: ILoginUser) => {
 
 // POST /api/auth/refresh-token  — no middleware, reads refreshToken from cookies
 const refreshToken = async (_token: string) => {
-
-    
     // TODO: verify the refresh token
+    const decoded = verifyToken(_token, config.jwt_refresh_token_secret);
     // TODO: check user still exists and is active
+    const user = await prisma.user.findUniqueOrThrow({
+        where: { email: decoded.email },
+    });
+
+    if(user.activeStatus === "BLOCKED") {
+        throw new Error("User is blocked");
+    }
     // TODO: generate and return a new access token
+
+    const jwtPayload = {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+    };
+
+    const accessToken = createToken(
+        jwtPayload,
+        config.jwt_access_token_secret,
+        config.jwt_expires_in as SignOptions["expiresIn"]
+    );
+
+    return {
+        accessToken
+    };
 };
 
 export const AuthServices = {
