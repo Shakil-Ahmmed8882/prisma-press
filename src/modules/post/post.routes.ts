@@ -8,6 +8,12 @@ const router = Router();
 // GET /api/posts           — public
 router.get("/", postController.getAllPosts);
 
+// GET /api/posts/stats     — user, admin (must be before /:postId)
+router.get("/stats", auth(Role.USER, Role.ADMIN), postController.getPostStats);
+
+// GET /api/posts/my-posts  — user, admin (must be before /:postId)
+router.get("/my-posts", auth(Role.USER, Role.ADMIN), postController.getMyPosts);
+
 // GET /api/posts/:postId   — public
 router.get("/:postId", postController.getSinglePost);
 
